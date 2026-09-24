@@ -85,7 +85,10 @@ The Flutter reader package has its own tests: `flutter test` in
 `packages/readpub_reader` runs controller unit tests against a scripted
 surface, and `flutter test integration_test/reader_test.dart -d <device>` in its
 example runs the reader on a simulator or emulator, asserting where located
-text appears on screen after navigation, relayout and restoration.
+text appears on screen after navigation, relayout and restoration. Decoration
+tests compare drawn marks with the decorated text character by character:
+every visible decorated character must be marked and every visible mark must
+lie on decorated text, which catches both misplaced and missing marks.
 
 Fuzzing remains future work and is not a substitute for these deterministic
 tests.

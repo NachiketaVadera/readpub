@@ -6,7 +6,7 @@ It is not affiliated with or endorsed by the Readium Foundation.
 | Package | Description |
 | --- | --- |
 | [`readpub`](packages/readpub) | Pure-Dart EPUB 2/3 engine: parsing, publication model, locators, EPUB CFI, reading text, positions, search and a loopback render session for browsers and WebViews. No Flutter dependency. |
-| [`readpub_reader`](packages/readpub_reader) | Flutter reader built on `readpub`: `ReaderController` and `ReaderView` for paged and scrolled reading in a WebView on iOS, Android and macOS, with an example app. |
+| [`readpub_reader`](packages/readpub_reader) | Flutter reader built on `readpub`: `ReaderController` and `ReaderView` for paged and scrolled reading in a WebView on iOS, Android and macOS, with highlights and an example app. |
 
 ## Repository layout
 

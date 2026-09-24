@@ -125,5 +125,5 @@ content for use under a weaker policy.
 
 This bridge is designed for Dart VM and Flutter host runtimes. It does not run
 inside a Dart web build. Native page gestures, exact page count, selection UI,
-annotation rendering, publication scripting support and media-overlay playback
-remain outside this adapter.
+decoration rendering, publication scripting support and media-overlay playback
+remain outside this adapter; the Flutter reader draws decorations (ADR 0015).

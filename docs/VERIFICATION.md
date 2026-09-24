@@ -78,22 +78,32 @@ and real devices have not been verified.
 `packages/readpub_reader` was verified with Flutter 3.47.5 on 2026-09-24:
 
 - `flutter analyze`: no issues in the package and example.
-- `flutter test`: 9 controller tests passed.
-- Integration tests: all 4 passed on an iPhone 16 simulator (iOS 18.5, WebKit)
+- `flutter test`: 15 tests passed: 13 controller tests, including decoration
+  drawing, deferral, resolution and taps, and 2 page-script tests (including
+  `node --check`).
+- Integration tests: all 6 passed on an iPhone 16 simulator (iOS 18.5, WebKit)
   and on an Android 17 emulator (Android System WebView 145). They page through
   chapters, cross chapter boundaries in both directions, navigate to contents
   entries and search results, apply a dark theme and larger text, reopen a
   saved locator in a new reader, select text, follow a footnote and its return
   link, refuse an external link, and scroll, asserting that located text is
-  inside the viewport.
+  inside the viewport. Decoration tests draw highlights and a cross-paragraph
+  underline and check, character by character, that every visible decorated
+  character is marked and every visible mark lies on decorated text, on the
+  first page, after page turns, after relayout in the dark theme, in the next
+  chapter and while scrolling; taps on marks are reported and do not turn
+  pages.
 - The example app was driven on the Android emulator with taps and swipes;
   screenshots showed paged chapters, the dark theme at larger text size and the
-  nested contents drawer.
+  nested contents drawer. A selection made by long-press and a handle drag was
+  highlighted, recolored, drawn in the dark theme and changed to an underline.
 
-Device testing exposed two defects that unit tests and desktop browsers had not:
-reflowable chapters needed a viewport declaration, and reloading a URL with an
-empty fragment did not reload on Android. Both were fixed. Physical devices,
-tablets and macOS have not been tested.
+Device testing exposed three defects that unit tests and desktop browsers had
+not: reflowable chapters needed a viewport declaration, reloading a URL with an
+empty fragment did not reload on Android, and WebKit let `readerLocationScript`
+scroll past the end of a scrolled chapter until the native scroll view
+corrected it. All were fixed. Physical devices, tablets and macOS have not been
+tested.
 
 ## Performance
 

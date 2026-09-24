@@ -94,6 +94,32 @@ Future<(EpubPublication, ReaderController, FakeSurface)> open({
   return (book, controller, surface);
 }
 
+const drawPrefix = 'window.readpubDecorations.apply(';
+
+/// The `[group, items]` arguments of the decoration drawings evaluated so far.
+List<List<Object?>> drawings(FakeSurface surface) => [
+  for (final expression in surface.evaluations)
+    if (expression.startsWith(drawPrefix))
+      jsonDecode(
+        '[${expression.substring(drawPrefix.length, expression.length - 1)}]',
+      ) as List<Object?>,
+];
+
+Future<Locator> phrase(
+  ReaderController controller,
+  Link link,
+  String value,
+) async {
+  final text = (await controller.services.documentText(link))!.text;
+  final start = text.indexOf(value);
+  expect(start, isNonNegative, reason: value);
+  return controller.services.locatorForTextRange(
+    link,
+    start,
+    start + value.length,
+  );
+}
+
 Future<void> ready(ReaderController controller, FakeSurface surface) async {
   surface.finish();
   await until(() => controller.isReady && controller.location != null);
@@ -105,7 +131,11 @@ void main() {
     expect(surface.loads.single.path, endsWith('/OEBPS/Text/one.xhtml'));
     expect(controller.isReady, isFalse);
     await ready(controller, surface);
-    expect(surface.runs, [readerLocationScript, readerBridgeScript]);
+    expect(surface.runs, [
+      readerLocationScript,
+      readerBridgeScript,
+      readerDecorationScript,
+    ]);
     expect(
       surface.evaluations.single,
       contains('window.readpubReader.restore('),
@@ -300,6 +330,163 @@ void main() {
     surface.post({'type': 'relocated', ...state('/4/4[p1]/1:0')});
     expect(() => url, returnsNormally);
     expect(surface.navigate(url), isFalse);
+  });
+
+  test(
+    'draws the decorations of the displayed resource after each load',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final cafe = await phrase(controller, book.readingOrder[0], 'A café');
+      final ishmael = await phrase(controller, book.readingOrder[1], 'Ishmael');
+      await controller.applyDecorations('highlights', [
+        ReaderDecoration(id: 'cafe', locator: cafe),
+        ReaderDecoration(
+          id: 'ishmael',
+          locator: ishmael,
+          style: const ReaderDecorationStyle.underline(Color(0x80102030)),
+        ),
+      ]);
+      final expected = (await controller.services.resolve(cafe))!.contentCfi!;
+      expect(expected.isRange, isTrue);
+      expect(drawings(surface), [
+        [
+          'highlights',
+          [
+            {
+              'id': 'cafe',
+              'cfi': expected.expression,
+              'style': 'highlight',
+              'color': [255, 213, 79, 0.439],
+            },
+          ],
+        ],
+      ], reason: 'only the displayed chapter is drawn');
+
+      surface.evaluator = (expression) => expression.contains('restore')
+          ? state('/4/6/1:0', pageCount: 1)
+          : null;
+      await controller.nextChapter();
+      final before = surface.evaluations.length;
+      surface.finish();
+      await until(() => controller.location?.readingOrderIndex == 1);
+      final loaded = surface.evaluations.sublist(before);
+      expect(loaded.first, startsWith(drawPrefix));
+      expect(
+        loaded.indexWhere((e) => e.contains('restore')),
+        greaterThan(0),
+        reason: 'drawn before placing',
+      );
+      expect(drawings(surface).last, [
+        'highlights',
+        [
+          {
+            'id': 'ishmael',
+            'cfi': isA<String>(),
+            'style': 'underline',
+            'color': [16, 32, 48, 0.502],
+          },
+        ],
+      ]);
+      expect(controller.decorations('highlights'), hasLength(2));
+
+      await controller.applyDecorations('highlights', const []);
+      expect(drawings(surface).last, ['highlights', isEmpty]);
+      expect(controller.decorations('highlights'), isEmpty);
+      await controller.previousChapter();
+      final count = surface.evaluations.length;
+      surface.finish();
+      await until(() => controller.location?.readingOrderIndex == 0);
+      expect(
+        surface.evaluations.sublist(count).where((e) => e.contains('apply(')),
+        isEmpty,
+        reason: 'removed groups are not drawn',
+      );
+    },
+  );
+
+  test(
+    'draws decorations applied while a chapter loads once it is ready',
+    () async {
+      final (book, controller, surface) = await open();
+      final cafe = await phrase(controller, book.readingOrder[0], 'A café');
+      await controller.applyDecorations('notes', [
+        ReaderDecoration(id: '1', locator: cafe),
+      ]);
+      expect(drawings(surface), isEmpty);
+      await ready(controller, surface);
+      expect(drawings(surface).single.first, 'notes');
+      expect(
+        surface.evaluations.indexWhere((e) => e.startsWith(drawPrefix)),
+        lessThan(surface.evaluations.indexWhere((e) => e.contains('restore'))),
+      );
+    },
+  );
+
+  test(
+    'skips decorations whose text is gone and rejects duplicate ids',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final cafe = await phrase(controller, book.readingOrder[0], 'A café');
+      final changed = Locator.fromJson({
+        ...cafe.toJson(),
+        'text': {'highlight': 'words from another edition'},
+      });
+      await controller.applyDecorations('highlights', [
+        ReaderDecoration(id: 'gone', locator: changed),
+        ReaderDecoration(
+          id: 'elsewhere',
+          locator: Locator(href: 'OEBPS/Text/missing.xhtml', type: 'text/html'),
+        ),
+      ]);
+      expect(drawings(surface), [
+        ['highlights', isEmpty],
+      ]);
+      expect(
+        () => controller.applyDecorations('highlights', [
+          ReaderDecoration(id: 'same', locator: cafe),
+          ReaderDecoration(id: 'same', locator: cafe),
+        ]),
+        throwsArgumentError,
+      );
+    },
+  );
+
+  test('reports taps on decorations', () async {
+    final (book, controller, surface) = await open();
+    await ready(controller, surface);
+    final cafe = await phrase(controller, book.readingOrder[0], 'A café');
+    final decoration = ReaderDecoration(id: 'cafe', locator: cafe);
+    await controller.applyDecorations('highlights', [decoration]);
+    final activations = <ReaderDecorationActivation>[];
+    final taps = <double>[];
+    controller
+      ..onDecorationActivated = activations.add
+      ..onTap = (x, y) => taps.add(x);
+    surface
+      ..post({
+        'type': 'decorationActivated',
+        'group': 'highlights',
+        'id': 'cafe',
+        'x': 40,
+        'y': 60,
+        'rect': {'x': 30, 'y': 50, 'width': 100, 'height': 22},
+      })
+      ..post({
+        'type': 'decorationActivated',
+        'group': 'highlights',
+        'id': 'unknown',
+        'x': 1,
+        'y': 1,
+      });
+    expect(activations, hasLength(1));
+    final activation = activations.single;
+    expect(activation.group, 'highlights');
+    expect(activation.decoration, decoration);
+    expect(activation.point, const Offset(40, 60));
+    expect(activation.rect, const Rect.fromLTWH(30, 50, 100, 22));
+    expect(taps, isEmpty);
   });
 
   test('decodes WebKit and Android JavaScript results alike', () {

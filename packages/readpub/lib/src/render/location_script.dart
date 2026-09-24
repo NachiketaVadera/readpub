@@ -257,7 +257,11 @@ const readerLocationScript = r'''
       const x = body.scrollLeft + rect.left;
       body.scrollLeft = Math.floor(x / window.innerWidth) * window.innerWidth;
     } else {
-      window.scrollBy(0, rect.top);
+      // Clamped, because WebKit lets a script scroll past the end until the
+      // native scroll view corrects it, reporting positions never displayed.
+      const element = document.scrollingElement || root();
+      const max = Math.max(0, element.scrollHeight - element.clientHeight);
+      element.scrollTop = Math.min(max, Math.max(0, element.scrollTop + rect.top));
     }
     return true;
   }

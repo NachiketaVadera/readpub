@@ -47,5 +47,9 @@
 * Declare a device-width viewport in prepared reflowable chapters, which mobile
   WebViews otherwise lay out at desktop width, and handle right-to-left paged
   progression in `readerLocationScript`.
+* Clamp `readerLocationScript` scrolling in scrolled chapters. WebKit let the
+  script scroll past the end until the native scroll view corrected it, so a
+  location near the end of a chapter was briefly reported where it was never
+  displayed.
 * Add `tool/conformance.dart` for running EPUB test corpora, and vendor 35 W3C
   EPUB 3 tests as repository fixtures (excluded from the published package).

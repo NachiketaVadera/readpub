@@ -32,6 +32,5 @@ reflowable chapters lacked a viewport declaration, so mobile WebViews laid
 them out at desktop width, and reloading a URL with an empty fragment was a
 same-document navigation on Android.
 
-Page-turn animations, highlight rendering, synthetic spreads and fixed-layout
-zoom are left for later work; the locator and selection APIs are the
-foundation for highlights.
+Page-turn animations, synthetic spreads and fixed-layout zoom are left for
+later work. Highlights were added later as decorations (ADR 0015).

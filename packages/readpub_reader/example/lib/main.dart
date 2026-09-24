@@ -7,6 +7,18 @@ import 'package:readpub_reader/readpub_reader.dart';
 
 void main() => runApp(const ReaderApp());
 
+/// The decoration group holding the reader's highlights.
+const highlightGroup = 'highlights';
+
+/// The highlight styles offered by the example.
+const highlightStyles = [
+  ReaderDecorationStyle.highlight(),
+  ReaderDecorationStyle.highlight(Color(0x7081c784)),
+  ReaderDecorationStyle.highlight(Color(0x7064b5f6)),
+  ReaderDecorationStyle.highlight(Color(0x70f48fb1)),
+  ReaderDecorationStyle.underline(),
+];
+
 /// The example application.
 class ReaderApp extends StatelessWidget {
   /// Creates the application.
@@ -39,6 +51,8 @@ class BookScreenState extends State<BookScreen> {
   Object? _error;
   bool _chrome = true;
   final List<Locator> _bookmarks = [];
+  final List<ReaderDecoration> _highlights = [];
+  int _nextHighlight = 0;
 
   /// The reader controller, once the book is open.
   ReaderController? get controller => _controller;
@@ -57,11 +71,13 @@ class BookScreenState extends State<BookScreen> {
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
         ),
       );
-      final controller = await ReaderController.create(
-        book,
-        settings: ReaderSettings(flow: ReaderFlow.paged),
-        onExternalLink: _external,
-      );
+      final controller =
+          await ReaderController.create(
+              book,
+              settings: ReaderSettings(flow: ReaderFlow.paged),
+              onExternalLink: _external,
+            )
+            ..onDecorationActivated = _highlightTapped;
       if (!mounted) {
         controller.dispose();
         await book.close();
@@ -110,6 +126,55 @@ class BookScreenState extends State<BookScreen> {
     );
   }
 
+  Future<void> _highlight(ReaderController controller) async {
+    // The locator captured with the selection; a tap outside the page may
+    // already have cleared the page's selection.
+    final locator = controller.selection?.locator;
+    if (locator == null) return;
+    setState(
+      () => _highlights.add(
+        ReaderDecoration(id: '${_nextHighlight++}', locator: locator),
+      ),
+    );
+    await controller.applyDecorations(highlightGroup, _highlights);
+    await controller.clearSelection();
+  }
+
+  void _highlightTapped(ReaderDecorationActivation activation) {
+    final controller = _controller;
+    if (controller == null) return;
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => _HighlightSheet(
+          highlight: activation.decoration,
+          onStyle: (style) {
+            final index = _highlights.indexWhere(
+              (h) => h.id == activation.decoration.id,
+            );
+            if (index < 0) return;
+            setState(
+              () => _highlights[index] = ReaderDecoration(
+                id: activation.decoration.id,
+                locator: activation.decoration.locator,
+                style: style,
+              ),
+            );
+            unawaited(controller.applyDecorations(highlightGroup, _highlights));
+          },
+          onDelete: () {
+            setState(
+              () => _highlights.removeWhere(
+                (h) => h.id == activation.decoration.id,
+              ),
+            );
+            unawaited(controller.applyDecorations(highlightGroup, _highlights));
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _controller;
@@ -126,7 +191,11 @@ class BookScreenState extends State<BookScreen> {
       listenable: controller,
       builder: (context, _) => Scaffold(
         appBar: _chrome ? _appBar(controller) : null,
-        drawer: _Contents(controller: controller, bookmarks: _bookmarks),
+        drawer: _Contents(
+          controller: controller,
+          bookmarks: _bookmarks,
+          highlights: _highlights,
+        ),
         body: SafeArea(
           child: ReaderView(
             controller: controller,
@@ -134,6 +203,14 @@ class BookScreenState extends State<BookScreen> {
           ),
         ),
         bottomNavigationBar: _chrome ? _Progress(controller: controller) : null,
+        // A floating button does not resize the page while text is selected.
+        floatingActionButton: controller.selection == null
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => unawaited(_highlight(controller)),
+                icon: const Icon(Icons.border_color),
+                label: const Text('Highlight'),
+              ),
       ),
     );
   }
@@ -183,10 +260,15 @@ class BookScreenState extends State<BookScreen> {
 }
 
 class _Contents extends StatelessWidget {
-  const _Contents({required this.controller, required this.bookmarks});
+  const _Contents({
+    required this.controller,
+    required this.bookmarks,
+    required this.highlights,
+  });
 
   final ReaderController controller;
   final List<Locator> bookmarks;
+  final List<ReaderDecoration> highlights;
 
   @override
   Widget build(BuildContext context) {
@@ -242,6 +324,34 @@ class _Contents extends StatelessWidget {
                   onTap: () {
                     Navigator.pop(context);
                     unawaited(controller.go(bookmark));
+                  },
+                ),
+            ],
+            if (highlights.isNotEmpty) ...[
+              const Divider(),
+              const ListTile(
+                title: Text(
+                  'Highlights',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              for (final highlight in highlights)
+                ListTile(
+                  leading: Icon(
+                    highlight.style.kind == ReaderDecorationKind.underline
+                        ? Icons.format_underlined
+                        : Icons.border_color,
+                    color: highlight.style.color.withValues(alpha: 1),
+                  ),
+                  title: Text(
+                    (highlight.locator.text.highlight ?? '').trim(),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(highlight.locator.title ?? ''),
+                  onTap: () {
+                    Navigator.pop(context);
+                    unawaited(controller.go(highlight.locator));
                   },
                 ),
             ],
@@ -443,5 +553,67 @@ class _SearchScreenState extends State<_SearchScreen> {
               );
             },
           ),
+  );
+}
+
+class _HighlightSheet extends StatelessWidget {
+  const _HighlightSheet({
+    required this.highlight,
+    required this.onStyle,
+    required this.onDelete,
+  });
+
+  final ReaderDecoration highlight;
+  final ValueChanged<ReaderDecorationStyle> onStyle;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '“${(highlight.locator.text.highlight ?? '').trim()}”',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              for (final style in highlightStyles)
+                IconButton(
+                  tooltip: style.kind == ReaderDecorationKind.underline
+                      ? 'Underline'
+                      : 'Highlight color',
+                  isSelected: style == highlight.style,
+                  icon: Icon(
+                    style.kind == ReaderDecorationKind.underline
+                        ? Icons.format_underlined
+                        : Icons.circle,
+                    color: style.color.withValues(alpha: 1),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onStyle(style);
+                  },
+                ),
+              const Spacer(),
+              IconButton(
+                tooltip: 'Remove highlight',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () {
+                  Navigator.pop(context);
+                  onDelete();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
   );
 }

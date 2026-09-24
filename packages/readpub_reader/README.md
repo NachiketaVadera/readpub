@@ -50,6 +50,41 @@ ones saved by earlier versions of a book, through the resolution order of
 return the selected text as a locator whose `text.highlight` is the selection.
 `controller.services` exposes search, positions and document text.
 
+## Highlights
+
+Highlights and underlines are decorations: a `Locator`, an id and a style,
+kept by the application in named groups. The controller draws the decorations
+of the displayed chapter, redraws them after page turns, relayout and chapter
+changes, and reports taps on them.
+
+```dart
+final locator = controller.selection?.locator; // Or selectionLocator().
+highlights.add(ReaderDecoration(id: uuid(), locator: locator!));
+await controller.applyDecorations('highlights', highlights);
+await controller.clearSelection();
+
+controller.onDecorationActivated = (activation) {
+  // activation.decoration, activation.rect (for anchoring a menu).
+};
+
+await controller.applyDecorations('search', [
+  for (final hit in results)
+    ReaderDecoration(
+      id: hit.cfi.toString(),
+      locator: hit.locator,
+      style: const ReaderDecorationStyle.underline(Color(0xff1e88e5)),
+    ),
+]);
+```
+
+Store `locator.toJson()` with your own id and style to persist them.
+Decorations are restored through `ReadingServices.resolve`, so one saved for
+an earlier edition is drawn where its text is found; one whose text is gone
+is not drawn. They are drawn as an overlay outside the content, so CFIs are
+unaffected (ADR 0015).
+
+## Input
+
 `ReaderView` turns pages on taps in the leading and trailing quarter of the
 width, on horizontal swipes in paged flow and on arrow and page keys, mirrored
 for right-to-left publications. Other taps call `onCenterTap`. The page stays
@@ -77,9 +112,10 @@ The reader serves chapters over HTTP on `127.0.0.1`.
 ## Security
 
 JavaScript is enabled in the WebView so the host can inject readpub's
-`readerLocationScript` and this package's `readerBridgeScript`. Publication
-scripts do not run: the render session replaces script elements with inert
-placeholders and serves a `script-src 'none'` Content Security Policy.
+`readerLocationScript` and this package's `readerBridgeScript` and
+`readerDecorationScript`. Publication scripts do not run: the render session
+replaces script elements with inert placeholders and serves a
+`script-src 'none'` Content Security Policy.
 Navigation is confined to the render session; every other URL, including web,
 `mailto:`, `file:` and `data:` links, is refused and reported to
 `onExternalLink` so the application can ask for consent. On Android, WebView
@@ -88,8 +124,8 @@ file and content access are disabled.
 ## Scope and limits
 
 - Page turns are immediate, without an animation or page curl.
-- Highlights and annotations are not rendered yet; selections and locators
-  provide the positions to build them on.
+- Decorations are highlights and underlines; notes and their storage are
+  left to the application.
 - Fixed-layout pages are shown one per screen with their own viewport; there
   are no synthetic spreads, and no zoom beyond the WebView's defaults.
 - Text-to-speech and media-overlay playback are not implemented.
@@ -107,4 +143,5 @@ flutter test integration_test/reader_test.dart -d <simulator-or-emulator>
 The integration tests page through chapters, navigate to contents entries and
 search results, change themes and font size, reopen saved locators, select
 text, follow footnotes and external links, and scroll, asserting where text
-appears on screen.
+appears on screen. They measure drawn decorations against the text they cover
+in both flows, after page turns, relayout and chapter changes, and tap them.

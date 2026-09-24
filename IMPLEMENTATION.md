@@ -109,8 +109,8 @@ toolkit.
   positions. Locators include positions only after positions are computed.
 - The location script is verified in a Chromium-based browser and, through the
   Flutter reader, in iOS simulator WebKit and Android emulator WebView; physical
-  devices are unverified. Precise pagination measurement beyond CSS columns,
-  highlight rendering and annotation storage remain open.
+  devices are unverified. Precise pagination measurement beyond CSS columns
+  and annotation storage remain open.
 - Fixed layout, RTL and vertical writing depend on publisher CSS and browser
   behavior; no comprehensive layout/device conformance has been demonstrated.
 - Media-overlay associations and durations are parsed; SMIL timelines and playback
@@ -174,12 +174,15 @@ the iOS simulator and an Android emulator. It provides:
   items, and progress from locations and positions.
 - Location restoration after settings changes, reopening and relayout, using
   locator resolution and the location script; selection-to-locator mapping.
-- An example app with contents, bookmarks, search, themes and text size.
+- Highlights and underlines drawn for locators in named groups as an overlay
+  that leaves CFIs intact, with tap reporting (ADR 0015).
+- An example app with contents, bookmarks, highlights, search, themes and text
+  size.
 
 A premium reader still needs:
 
-- Highlight and annotation rendering and storage, page-turn animations,
-  synthetic spreads and fixed-layout zoom, and accessible reading controls.
+- Annotation notes and storage, page-turn animations, synthetic spreads and
+  fixed-layout zoom, and accessible reading controls.
 - Device verification on physical phones and tablets for reflowable and
   fixed-layout books, RTL, vertical writing, embedded fonts, media and
   accessibility, and macOS verification.

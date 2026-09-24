@@ -27,7 +27,7 @@ standards-compliance claim is made.
 | Search | Lazy scan with case, diacritic and whole-word options; no stemming, tokenization or CJK word segmentation |
 | Browser rendering bridge | Loopback serving, CSS themes, scroll/paged styles, resource ranges, CFI-preserving preparation |
 | Browser location script | Verified in a Chromium-based browser, iOS simulator WebKit and Android emulator WebView; physical devices unverified |
-| Flutter reader (`packages/readpub_reader`) | WebView reader with paging, navigation, settings, selection and locators; no page animations, highlight rendering or spreads |
+| Flutter reader (`packages/readpub_reader`) | WebView reader with paging, navigation, settings, selection, locators, highlights and underlines; no page animations or spreads |
 | DRM / LCP | Not implemented |
 | ZIP64 / multi-disk / ZIP encryption | Rejected |
 | Remote resources | HTTP(S) links retained; no network fetch |

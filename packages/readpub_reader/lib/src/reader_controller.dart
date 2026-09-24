@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, Offset, Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:readpub/readpub.dart';
 
 import 'bridge_script.dart';
+import 'decoration_script.dart';
+import 'reader_decoration.dart';
 import 'reader_surface.dart';
 
 /// The displayed reading location.
@@ -59,9 +61,11 @@ enum ReaderDirection {
 ///
 /// The controller starts an `EpubRenderSession` and `ReadingServices` for a
 /// publication owned by the caller, loads chapters into a [ReaderSurface] and
-/// injects `readerLocationScript` and [readerBridgeScript] into each. Every
-/// reading location is reported as a [ReaderLocation] with a persistable
-/// [Locator]; restore it with [go]. Dispose the controller before closing the
+/// injects `readerLocationScript`, [readerBridgeScript] and
+/// [readerDecorationScript] into each. Every reading location is reported as
+/// a [ReaderLocation] with a persistable [Locator]; restore it with [go].
+/// Highlights and other [ReaderDecoration]s are drawn with
+/// [applyDecorations]. Dispose the controller before closing the
 /// publication.
 final class ReaderController extends ChangeNotifier {
   ReaderController._(
@@ -124,9 +128,12 @@ final class ReaderController extends ChangeNotifier {
   /// Receives links that leave the publication, such as web and mail links.
   void Function(Uri url)? onExternalLink;
 
-  /// Receives taps outside links, with the tap position as fractions of the
-  /// surface width and height.
+  /// Receives taps outside links and decorations, with the tap position as
+  /// fractions of the surface width and height.
   void Function(double x, double y)? onTap;
+
+  /// Receives taps on drawn decorations.
+  void Function(ReaderDecorationActivation activation)? onDecorationActivated;
 
   ReaderLocation? _location;
   ReaderSelection? _selection;
@@ -139,6 +146,13 @@ final class ReaderController extends ChangeNotifier {
   bool _ready = false;
   bool _disposed = false;
   int _generation = 0;
+  // Identifies the document in the surface; it changes when a load starts
+  // and when a document finishes loading.
+  int _document = 0;
+  // The document into which the decoration script was injected.
+  int? _decorated;
+  final Map<String, List<ReaderDecoration>> _decorations = {};
+  final Map<String, int> _revisions = {};
 
   /// The displayed location, once the first chapter is positioned.
   ReaderLocation? get location => _location;
@@ -218,6 +232,48 @@ final class ReaderController extends ChangeNotifier {
       ),
       reload: true,
     );
+  }
+
+  /// The decorations applied to [group], in drawing order.
+  List<ReaderDecoration> decorations(String group) =>
+      _decorations[group] ?? const [];
+
+  /// Replaces the decorations of [group] and draws those in the displayed
+  /// resource.
+  ///
+  /// Groups keep independent sets, such as highlights and search results;
+  /// later decorations draw over earlier ones, and groups draw in the order
+  /// they were first applied. Decorations in other resources are drawn when
+  /// their resource is displayed. Apply an empty list to remove a group.
+  /// Throws an [ArgumentError] if two decorations share an id.
+  Future<void> applyDecorations(
+    String group,
+    Iterable<ReaderDecoration> decorations,
+  ) async {
+    final list = List<ReaderDecoration>.unmodifiable(decorations);
+    final ids = <String>{};
+    for (final decoration in list) {
+      if (!ids.add(decoration.id)) {
+        throw ArgumentError.value(
+          decoration.id,
+          'decorations',
+          'Duplicate decoration id in group "$group"',
+        );
+      }
+    }
+    if (list.isEmpty) {
+      _decorations.remove(group);
+    } else {
+      _decorations[group] = list;
+    }
+    _revisions[group] = (_revisions[group] ?? 0) + 1;
+    if (!_disposed && _decorated == _document) await _draw([group]);
+  }
+
+  /// Clears the text selection in the surface.
+  Future<void> clearSelection() async {
+    if (_disposed || _decorated != _document) return;
+    await surface.run('window.getSelection().removeAllRanges()');
   }
 
   /// Returns a locator for the current selection, or null without one.
@@ -307,6 +363,7 @@ final class ReaderController extends ChangeNotifier {
     _loading = url;
     _ready = false;
     _generation++;
+    _document++;
     notifyListeners();
     await _setBackground();
     if (reload && displayed != null && _samePath(url, displayed)) {
@@ -320,6 +377,7 @@ final class ReaderController extends ChangeNotifier {
     if (_disposed || !url.toString().startsWith(session.baseUrl.toString())) {
       return;
     }
+    _document++;
     final loading = _loading;
     if (loading == null || !_samePath(url, loading)) {
       // A link inside the content navigated to another resource.
@@ -331,10 +389,20 @@ final class ReaderController extends ChangeNotifier {
     }
     _loading = null;
     _displayed = url;
-    await surface.run(readerLocationScript);
-    await surface.run(readerBridgeScript);
+    final document = _document;
     final target = _pending;
     _pending = null;
+    await surface.run(readerLocationScript);
+    await surface.run(readerBridgeScript);
+    await surface.run(readerDecorationScript);
+    if (_disposed) return;
+    if (document == _document) {
+      _decorated = document;
+      // Drawn before positioning, so the page appears with its decorations.
+      await _draw(_decorations.keys.toList());
+    }
+    // A newer load positions its own document.
+    if (_disposed || _loading != null) return;
     if (target != null) {
       await _restore(target);
     } else {
@@ -355,6 +423,68 @@ final class ReaderController extends ChangeNotifier {
     final state = await surface.evaluate('window.readpubReader.state()');
     _ready = true;
     await _applyState(state);
+  }
+
+  /// Draws the decorations of [groups] that belong to the displayed resource.
+  Future<void> _draw(List<String> groups) async {
+    final link = _link;
+    if (link == null || groups.isEmpty) return;
+    final document = _document;
+    final revisions = {for (final group in groups) group: _revisions[group]};
+    final href = services.locatorFromLink(link)?.href ?? link.href;
+    final payload = <String, List<Map<String, Object?>>>{};
+    for (final group in groups) {
+      final items = <Map<String, Object?>>[];
+      for (final decoration in decorations(group)) {
+        if (!_sameResource(decoration.locator.href, href)) continue;
+        final cfi = await _rangeCfi(decoration.locator);
+        if (cfi == null) continue;
+        items.add({
+          'id': decoration.id,
+          'cfi': cfi,
+          'style': decoration.style.kind.name,
+          'color': _channels(decoration.style.color),
+        });
+      }
+      payload[group] = items;
+    }
+    for (final MapEntry(key: group, value: items) in payload.entries) {
+      // A newer application of the group, or another document, supersedes
+      // this drawing.
+      if (_disposed ||
+          document != _document ||
+          _revisions[group] != revisions[group]) {
+        continue;
+      }
+      try {
+        await surface.evaluate(
+          'window.readpubDecorations.apply('
+          '${jsonEncode(group)}, ${jsonEncode(items)})',
+        );
+      } on Exception {
+        // The document changed while drawing; the next document draws again.
+      }
+    }
+  }
+
+  /// A content-document range CFI for the text of [locator], or null when its
+  /// text cannot be found.
+  Future<String?> _rangeCfi(Locator locator) async {
+    final LocatorResolution? resolution;
+    try {
+      resolution = await services.resolve(locator);
+    } on PublicationException {
+      return null;
+    }
+    final cfi = resolution?.contentCfi;
+    if (resolution == null ||
+        cfi == null ||
+        resolution.end <= resolution.start ||
+        (resolution.match != LocatorMatch.cfi &&
+            resolution.match != LocatorMatch.text)) {
+      return null;
+    }
+    return cfi.expression;
   }
 
   Future<void> _applyState(Object? state) async {
@@ -416,6 +546,8 @@ final class ReaderController extends ChangeNotifier {
         if (_loading == null) unawaited(_applyState(event));
       case 'selection':
         unawaited(_selectionChanged(event['cfi'], event['text']));
+      case 'decorationActivated':
+        _activated(event);
       case 'tap':
         final x = event['x'];
         final y = event['y'];
@@ -435,6 +567,43 @@ final class ReaderController extends ChangeNotifier {
             unawaited(previousPage());
         }
     }
+  }
+
+  void _activated(Map<Object?, Object?> event) {
+    final group = event['group'];
+    final id = event['id'];
+    final x = event['x'];
+    final y = event['y'];
+    if (group is! String || id is! String || x is! num || y is! num) return;
+    final decoration = decorations(group)
+        .where((decoration) => decoration.id == id)
+        .firstOrNull;
+    if (decoration == null) return;
+    final rect = event['rect'];
+    onDecorationActivated?.call(
+      ReaderDecorationActivation(
+        group: group,
+        decoration: decoration,
+        point: Offset(x.toDouble(), y.toDouble()),
+        rect: rect is Map
+            ? switch ((rect['x'], rect['y'], rect['width'], rect['height'])) {
+                (
+                  final num left,
+                  final num top,
+                  final num width,
+                  final num height,
+                ) =>
+                  Rect.fromLTWH(
+                    left.toDouble(),
+                    top.toDouble(),
+                    width.toDouble(),
+                    height.toDouble(),
+                  ),
+                _ => null,
+              }
+            : null,
+      ),
+    );
   }
 
   Future<void> _selectionChanged(Object? cfi, Object? text) async {
@@ -470,6 +639,28 @@ final class ReaderController extends ChangeNotifier {
 }
 
 bool _samePath(Uri a, Uri b) => a.path == b.path;
+
+bool _sameResource(String a, String b) {
+  if (a == b) return true;
+  try {
+    return resolvePublicationPath(Uri.parse(a)) ==
+        resolvePublicationPath(Uri.parse(b));
+  } on FormatException {
+    return false;
+  } on PublicationException {
+    return false;
+  }
+}
+
+List<num> _channels(Color color) {
+  final argb = color.toARGB32();
+  return [
+    (argb >> 16) & 0xff,
+    (argb >> 8) & 0xff,
+    argb & 0xff,
+    (((argb >> 24) & 0xff) / 255 * 1000).round() / 1000,
+  ];
+}
 
 Color _background(ReaderSettings settings) => switch (settings.theme) {
   ReaderTheme.light => const Color(0xffffffff),
