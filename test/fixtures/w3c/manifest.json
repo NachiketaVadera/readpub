@@ -1,0 +1,378 @@
+{
+  "source": "https://github.com/w3c/epub-tests",
+  "commit": "4cc654f941fbe297a07877e09280ec3c473f3ec6",
+  "license": "W3C Software and Document License - 2023 version; see LICENSE.md and NOTICE.md",
+  "tests": [
+    {
+      "id": "lay-pp-spine-overrides_image-spine-reflow",
+      "file": "lay-pp-spine-overrides_image-spine-reflow.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Reflowable document, with a spine item overriding the global setting to use pre-paginated layout, the pre-paginated page is image in spine with fallback.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-spine-override"
+      ]
+    },
+    {
+      "id": "nav-non-text_img",
+      "file": "nav-non-text_img.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The navigation document contains a normal link, and a link with an image content with alt text.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-nav-alt-text"
+      ]
+    },
+    {
+      "id": "nav-non-text_img_title",
+      "file": "nav-non-text_img_title.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The navigation document contains a normal link, and a link with an image content with title and alt text.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-nav-alt-text"
+      ]
+    },
+    {
+      "id": "ocf-font_obfuscation",
+      "file": "ocf-font_obfuscation.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An obfuscated (TrueType) font should be displayed after de-obfuscation.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-ocf-fobfus",
+        "https://www.w3.org/TR/epub/#obfus-key-unique-id"
+      ]
+    },
+    {
+      "id": "ocf-font_obfuscation_bis",
+      "file": "ocf-font_obfuscation_bis.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An obfuscated (TrueType) font should not be displayed after de-obfuscation, because the obfuscation used a different publication id.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-ocf-fobfus",
+        "https://www.w3.org/TR/epub/#obfus-key-unique-id"
+      ]
+    },
+    {
+      "id": "ocf-metainf-manifest",
+      "file": "ocf-metainf-manifest.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An ancillary manifest file, containing an extra spine item, is present in the META-INF directory; this extra item must be ignored by the reading system.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#sec-container-metainf-manifest.xml"
+      ]
+    },
+    {
+      "id": "ocf-package_multiple",
+      "file": "ocf-package_multiple.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The EPUB contains three valid package files and three corresponding sets of content documents, all referenced by the container.xml file. The reading system must use the first package.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs-33/#container-default-rendition"
+      ]
+    },
+    {
+      "id": "ocf-url_link-leaking-relative",
+      "file": "ocf-url_link-leaking-relative.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Use a relative link with several double-dot path segments from the content to a photograph. The folder hierarchy containing the photograph starts at the root level; the relative image reference exceeds depth of hierarchy.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#sec-container-iri-step-parse",
+        "https://www.w3.org/TR/epub-rs/#sec-container-iri-step-parse"
+      ]
+    },
+    {
+      "id": "ocf-url_link-path-absolute",
+      "file": "ocf-url_link-path-absolute.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Use a path-absolute link, i.e., beginning with a leading slash, from the content to a photograph. The folder hierarchy containing the photograph starts at the root level.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#sec-container-iri-root-parse",
+        "https://www.w3.org/TR/epub-rs/#sec-container-iri-root-parse"
+      ]
+    },
+    {
+      "id": "ocf-url_link-relative",
+      "file": "ocf-url_link-relative.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "A simple relative link from the content to a photograph. The folder hierarchy containing the photograph starts at the root level.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#pkg-parse-package-url",
+        "https://www.w3.org/TR/epub/#sec-container-iri-root",
+        "https://www.w3.org/TR/epub-rs/#sec-container-iri-root"
+      ]
+    },
+    {
+      "id": "ocf-zip-comp",
+      "file": "ocf-zip-comp.epub",
+      "packaging": "Members other than mimetype compressed with Bzip2.",
+      "description": "MUST treat any OCF ZIP container that uses compression techniques other than Deflate as in error.",
+      "level": null,
+      "references": [
+        "https://w3c.github.io/epub-specs/epub33/rs/#confreq-zip-comp"
+      ]
+    },
+    {
+      "id": "ocf-zip-mult",
+      "file": "ocf-zip-mult.epub",
+      "packaging": "Final segment of a split archive (Info-ZIP zip -s 64k).",
+      "description": "MUST treat any OCF ZIP container that splits the content into segments as in error.",
+      "level": null,
+      "references": [
+        "https://w3c.github.io/epub-specs/epub33/rs/#confreq-zip-mult"
+      ]
+    },
+    {
+      "id": "pkg-creator-order",
+      "file": "pkg-creator-order.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Several creators are listed in the package document. The reading system must not display them out of order (but it may display only the first).",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-creator-order"
+      ]
+    },
+    {
+      "id": "pkg-dir-auto_root-rtl",
+      "file": "pkg-dir-auto_root-rtl.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'auto' and the 'dir' attribute is set to 'rtl' on the package element; the title should display incorrectly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-auto"
+      ]
+    },
+    {
+      "id": "pkg-dir-auto_root-unset",
+      "file": "pkg-dir-auto_root-unset.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'auto'; the title should display incorrectly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-auto"
+      ]
+    },
+    {
+      "id": "pkg-dir_creator-rtl",
+      "file": "pkg-dir_creator-rtl.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:creator' element's 'dir' attribute is set to 'rtl'; the creator's name should display right-to-left.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir"
+      ]
+    },
+    {
+      "id": "pkg-dir_rtl-root-ltr",
+      "file": "pkg-dir_rtl-root-ltr.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'rtl' and the 'dir' attribute is set to 'ltr' on the 'package' element; the title should display correctly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir"
+      ]
+    },
+    {
+      "id": "pkg-dir_rtl-root-unset",
+      "file": "pkg-dir_rtl-root-unset.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is set to 'rtl'; the title should display correctly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir"
+      ]
+    },
+    {
+      "id": "pkg-dir_unset-root-rtl",
+      "file": "pkg-dir_unset-root-rtl.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The root's 'dir' attribute is set to 'rtl'; the title should display correctly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir"
+      ]
+    },
+    {
+      "id": "pkg-dir_unset-root-unset",
+      "file": "pkg-dir_unset-root-unset.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The 'dc:title' element contains text whose proper rendering requires bidi control. The element's 'dir' attribute is not set; the title should display incorrectly.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub/#attrdef-dir",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir-intro",
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-dir"
+      ]
+    },
+    {
+      "id": "pkg-linked-records",
+      "file": "pkg-linked-records.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Reading System must process and display the title and creator metadata from the package document. An ONIX 3.0 format linked metadata record exists, but contains neither title nor creator metadata.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#sec-linked-records",
+        "https://www.w3.org/TR/epub/#sec-linked-records"
+      ]
+    },
+    {
+      "id": "pkg-manifest-unlisted-resource",
+      "file": "pkg-manifest-unlisted-resource.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The XHTML content references an image that does not appear in the manifest. The image should not be shown.",
+      "level": "should",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rendition-rs-manifest"
+      ]
+    },
+    {
+      "id": "pkg-meta-whitespace",
+      "file": "pkg-meta-whitespace.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The package document's title and creator contain leading and trailing spaces along with excess internal whitespace. The reading system must render only a single space in all cases.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-whitespace"
+      ]
+    },
+    {
+      "id": "pkg-spine-duplicate-item-rendering",
+      "file": "pkg-spine-duplicate-item-rendering.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The spine contains several references to the same content document. The reading system must not skip the duplicates when rendering the reading order.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-pkg-duplicate-item-rendering"
+      ]
+    },
+    {
+      "id": "pkg-title-order",
+      "file": "pkg-title-order.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "Several titles are listed in the package document. The reading system must use the first title (and whether to use other titles is not defined).",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#title-order"
+      ]
+    },
+    {
+      "id": "pkg-version-backward",
+      "file": "pkg-version-backward.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "“Reading Systems MUST attempt to process an EPUB Publication whose Package Document version attribute is less than \"3.0\"”. This is an EPUB with package version attribute set to \"0\", to see if a reading system will open it.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-backward-epub"
+      ]
+    },
+    {
+      "id": "pub-file-urls",
+      "file": "pub-file-urls.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The XHTML content document contains iframes referring to resources on the user's local file system through a file URL. The reading system should refrain from loading these resources.",
+      "level": "must",
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-file-urls"
+      ]
+    },
+    {
+      "id": "pub-foreign_image",
+      "file": "pub-foreign_image.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An HTML content file contains a PSD image, with a manifest fallback to a PNG image. This tests fallbacks for resources that are not in the spine.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-foreign"
+      ]
+    },
+    {
+      "id": "pub-foreign_json-spine",
+      "file": "pub-foreign_json-spine.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "This EPUB uses a JSON content file in the spine, with a manifest fallback to an HTML document. If the reading system does not support JSON, it should display the HTML.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-foreign"
+      ]
+    },
+    {
+      "id": "pub-foreign_xml-spine",
+      "file": "pub-foreign_xml-spine.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "This EPUB uses an ordinary XML content file with mimetype application/xml in the spine, with a manifest fallback to an HTML document. If the reading system does not support XML, it should display the HTML.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-foreign"
+      ]
+    },
+    {
+      "id": "pub-foreign_xml-suffix-spine",
+      "file": "pub-foreign_xml-suffix-spine.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "This EPUB uses an custom XML content file with mimetype application/dtc+xml in the spine, with a manifest fallback to an HTML document. If the reading system does not support XML, it should display the HTML.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-foreign"
+      ]
+    },
+    {
+      "id": "pub-xml-external-id",
+      "file": "pub-xml-external-id.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "The XHTML content document contains a reference to an external entity. The reading system must not resolve it. Reading systems may raise an error on the ingenstion workflow.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-xml-extid"
+      ]
+    },
+    {
+      "id": "pub-xml-names",
+      "file": "pub-xml-names.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An XHTML element has an invalid name with two successive colons. The reading system must produce an error.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-xml-ns"
+      ]
+    },
+    {
+      "id": "pub-xml-non-validating_comment",
+      "file": "pub-xml-non-validating_comment.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "This is a test of XML processing. The nav doc should not appear in the spine because the itemref is commented out.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-xml-nval"
+      ]
+    },
+    {
+      "id": "pub-xml-non-validating_unclosed",
+      "file": "pub-xml-non-validating_unclosed.epub",
+      "packaging": "Unmodified files; mimetype stored, others deflated.",
+      "description": "An XHTML element does not have a closing tag. The reading system must produce an error.",
+      "level": null,
+      "references": [
+        "https://www.w3.org/TR/epub-rs/#confreq-rs-xml-nval"
+      ]
+    }
+  ]
+}

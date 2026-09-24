@@ -1,0 +1,20 @@
+name: readpub
+description: A pure-Dart toolkit for reading EPUB publications.
+version: 0.1.0-dev.1
+topics:
+  - epub
+  - books
+  - publications
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  collection: ^1.19.0
+  crypto: ^3.0.7
+  html: ^0.15.7
+  xml: ^7.0.1
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.32.0
