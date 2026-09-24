@@ -54,11 +54,18 @@ Sources: [archive current](https://pub.dev/packages/archive),
 [posix](https://pub.dev/packages/posix),
 [test](https://pub.dev/packages/test), [lints](https://pub.dev/packages/lints).
 
+## Flutter reader package
+
+`packages/readpub_reader` is a separate Flutter package. It depends on the
+Flutter SDK and on the official `webview_flutter` (4.14),
+`webview_flutter_android` and `webview_flutter_wkwebview` plugins (BSD
+3-Clause, flutter.dev). The core package does not depend on it.
+
 ## Reading services
 
 Locators, EPUB CFI, text extraction, positions and search add no dependencies.
 XHTML is walked with `package:xml` events and legacy HTML with `package:html`,
 as in the renderer. The search folding table is generated data committed in
-`lib/src/search/folding_table.dart`; regenerating it requires Python 3 but the
+`packages/readpub/lib/src/search/folding_table.dart`; regenerating it requires Python 3 but the
 package does not. `location_script_test.dart` runs `node --check` only when
 Node.js is installed. The benchmark generator uses the Python standard library.

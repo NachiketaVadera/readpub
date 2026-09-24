@@ -2,6 +2,13 @@
 
 Status: EPUB parsing, rendering bridge and reading services implemented.
 
+## Packages
+
+The repository holds two packages under `packages/`. `readpub` is the pure-Dart
+engine described here; paths in this document are relative to it.
+`readpub_reader` is the Flutter reader (ADR 0014). It depends on `readpub`;
+`readpub` never depends on it or on Flutter.
+
 ## Dependency direction
 
 ```text
@@ -25,7 +32,7 @@ outside the package; it exchanges content-document CFIs with the reading
 services through the host application. Locator, CFI and content decoding are
 value and utility layers shared by the render session and reading services.
 Format-independent errors and URI utilities sit below these layers. No lower
-layer imports EPUB, Flutter, UI, FFI, or application code. The root package exports a deliberately
+layer imports EPUB, Flutter, UI, FFI, or application code. The package exports a deliberately
 small API through `lib/readpub.dart`.
 
 ## Decisions before implementation

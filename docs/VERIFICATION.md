@@ -1,7 +1,8 @@
 # Verification
 
 Verified on 2026-09-24 with Dart 3.13.4 stable on macOS 27.0 arm64 (Apple M4
-Pro).
+Pro). Commands and paths refer to the core package, `packages/readpub`, except
+in the Flutter reader section.
 
 - `dart analyze --fatal-infos`: no issues.
 - `dart test`: 227 tests passed: 36 vendored W3C suite tests, 53 CFI, 17
@@ -15,9 +16,9 @@ Pro).
 - `dart run example/reading_services.dart test/fixtures/epub/reading.epub whale`:
   six positions with the malformed chapter reported, four titled search results
   with publication CFI ranges, and a saved locator restored by CFI.
-- `dart pub publish --dry-run`: package contents inspected; the two advisory
-  warnings remain (no homepage/repository URL; Pub prefers `doc/` to `docs/`).
-  No URL was invented; nothing was published.
+- `dart pub publish --dry-run`: package contents inspected; one advisory
+  warning remains (no homepage/repository URL). The repository's `docs/` and
+  roadmap are outside the package. No URL was invented; nothing was published.
 - Independent corpus: 35 original Python-generated EPUBs, plus ZIP fixtures.
 
 ## W3C EPUB 3 test suite
@@ -71,6 +72,28 @@ compared the following text, and regenerated the CFI from the DOM point:
 The browser check also exposed an SVG `script` placeholder inheriting the SVG
 namespace; placeholders now declare the XHTML namespace. WebKit, Android WebView
 and real devices have not been verified.
+
+## Flutter reader
+
+`packages/readpub_reader` was verified with Flutter 3.47.5 on 2026-09-24:
+
+- `flutter analyze`: no issues in the package and example.
+- `flutter test`: 9 controller tests passed.
+- Integration tests: all 4 passed on an iPhone 16 simulator (iOS 18.5, WebKit)
+  and on an Android 17 emulator (Android System WebView 145). They page through
+  chapters, cross chapter boundaries in both directions, navigate to contents
+  entries and search results, apply a dark theme and larger text, reopen a
+  saved locator in a new reader, select text, follow a footnote and its return
+  link, refuse an external link, and scroll, asserting that located text is
+  inside the viewport.
+- The example app was driven on the Android emulator with taps and swipes;
+  screenshots showed paged chapters, the dark theme at larger text size and the
+  nested contents drawer.
+
+Device testing exposed two defects that unit tests and desktop browsers had not:
+reflowable chapters needed a viewport declaration, and reloading a URL with an
+empty fragment did not reload on Android. Both were fixed. Physical devices,
+tablets and macOS have not been tested.
 
 ## Performance
 

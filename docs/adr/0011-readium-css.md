@@ -22,5 +22,5 @@ Readium properties, and verifying typography and pagination on the target
 WebViews. That verification needs real Flutter devices, which this package
 does not yet have; claiming Readium CSS compatibility without it would be
 misleading. Revisit when a Flutter reader exists; pin a release, vendor it under
-`lib/src/render/assets` with its license and attribution, and extend the
+`packages/readpub/lib/src/render/assets` with its license and attribution, and extend the
 rendering and location tests before switching.

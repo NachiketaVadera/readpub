@@ -26,8 +26,8 @@ standards-compliance claim is made.
 | Positions and progression | Deterministic, text-based; not interchangeable with Readium's byte-based positions |
 | Search | Lazy scan with case, diacritic and whole-word options; no stemming, tokenization or CJK word segmentation |
 | Browser rendering bridge | Loopback serving, CSS themes, scroll/paged styles, resource ranges, CFI-preserving preparation |
-| Browser location script | Verified in a Chromium-based browser; WebKit and Android WebView unverified |
-| Native Flutter reader UI / exact page measurement | Not implemented |
+| Browser location script | Verified in a Chromium-based browser, iOS simulator WebKit and Android emulator WebView; physical devices unverified |
+| Flutter reader (`packages/readpub_reader`) | WebView reader with paging, navigation, settings, selection and locators; no page animations, highlight rendering or spreads |
 | DRM / LCP | Not implemented |
 | ZIP64 / multi-disk / ZIP encryption | Rejected |
 | Remote resources | HTTP(S) links retained; no network fetch |
@@ -77,7 +77,7 @@ hardening work; passing these tests does not demonstrate every EPUB feature.
 ## W3C EPUB 3 test suite
 
 The suite at commit `4cc654f` (2026-09-16) was built into 209 publications and
-run with `tool/conformance.dart` (ADR 0013). Every publication opens. 30
+run with `packages/readpub/tool/conformance.dart` (ADR 0013). Every publication opens. 30
 requirements observable by this library are asserted and hold, including
 first-rootfile selection, ignored META-INF extras, duplicate spine items,
 metadata order, whitespace and direction, image navigation labels, fallbacks,

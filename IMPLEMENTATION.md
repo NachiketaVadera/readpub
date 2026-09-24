@@ -2,7 +2,8 @@
 
 Last updated: 2026-09-24. Working package name: `readpub`.
 
-This is an internal development document, excluded from pub.dev by `.pubignore`.
+This is an internal development document at the repository root, outside both
+packages, so it is never published.
 It records the intended product, the implementation that exists, and the work
 still required. Update it when a subsystem or its verification status changes.
 
@@ -22,7 +23,7 @@ Adapted code and distributed assets must retain required attribution and license
 The core remains idiomatic modern Dart with a small public API, immutable value
 models, strict analysis, typed failures, bounded resource access and behavioral
 tests. It must not depend on Flutter, `dart:ui`, platform channels, FFI or native
-reader libraries. The package is at the repository root, currently targets Dart
+reader libraries. The core package is `packages/readpub`, currently targets Dart
 3.13+, and runs on Dart VM and Flutter host runtimes. Its `dart:io` implementation
 does not support Flutter Web.
 
@@ -34,7 +35,7 @@ Actual browser layout, WebView integration and Flutter UI remain separate layers
 
 | Area | Implemented behavior |
 | --- | --- |
-| Package foundations | Root Dart package, selective public exports, strict analyzer configuration, BSD 3-Clause license, attribution, architecture and decision records, usage examples. |
+| Package foundations | Core Dart package in `packages/readpub` beside the Flutter reader package, selective public exports, strict analyzer configuration, BSD 3-Clause license, attribution, architecture and decision records, usage examples. |
 | Assets and archives | File and memory assets with half-open byte ranges; replaceable archive interface; single-disk ZIP32 stored/Deflate support, CRC validation and entry/path/size/ratio checks. |
 | Resources and fetching | Lazy archive resources, media types, full/range reads, explicit ownership and close behavior, typed failures and publication-relative URI resolution. |
 | Publication model | Immutable metadata, contributors, subjects, links, reading order, resources and collection/navigation trees; structural equality and JSON output. |
@@ -80,9 +81,9 @@ that every future checkout has passed them:
   mismatches in a Chromium-based browser for XHTML, legacy HTML and paged flow.
 - A 108.8 MB synthetic book was profiled; ranged media reads went from 9.8 s to
   20 ms for twenty requests after the archive changes.
-- The examples ran successfully. The publish dry run reported the same two
-  advisory warnings: missing homepage/repository metadata and the `docs/`
-  directory name instead of the preferred `doc/`. No release has been published.
+- The examples ran successfully. The core package's publish dry run reports one
+  advisory warning: missing homepage/repository metadata. No release has been
+  published.
 
 See [verification evidence](docs/VERIFICATION.md),
 [performance](docs/PERFORMANCE.md) and [test strategy](docs/TESTING.md).
@@ -106,9 +107,10 @@ toolkit.
   full case folding or CJK word segmentation.
 - Positions are text-based and not interchangeable with Readium's byte-based
   positions. Locators include positions only after positions are computed.
-- The location script is verified in one Chromium-based browser only. WebKit,
-  Android WebView and real devices are unverified; precise pagination,
-  highlight rendering and annotation storage remain renderer/application work.
+- The location script is verified in a Chromium-based browser and, through the
+  Flutter reader, in iOS simulator WebKit and Android emulator WebView; physical
+  devices are unverified. Precise pagination measurement beyond CSS columns,
+  highlight rendering and annotation storage remain open.
 - Fixed layout, RTL and vertical writing depend on publisher CSS and browser
   behavior; no comprehensive layout/device conformance has been demonstrated.
 - Media-overlay associations and durations are parsed; SMIL timelines and playback
@@ -159,21 +161,28 @@ designs, narrow public APIs and behavioral tests. Item 7 is partly complete.
    fixed (ADR 0013). Remaining: real-world large illustrated books, profiling on
    phones, and the suite's rendering and behavior tests in a reading system.
 
-## Flutter reader integration work
+## Flutter reader
 
-A separate Flutter package/application can consume the publication, loopback
-chapter URLs, reading services and the location script. A reliable premium
-reader still needs:
+`packages/readpub_reader` is a separate Flutter package (ADR 0014), verified on
+the iOS simulator and an Android emulator. It provides:
 
-- WebView lifecycle, navigation policy, chapter switching, platform setup and
-  host script injection that keeps publication scripts disabled.
-- Measured pagination, page controls and progress reporting; restoring
-  locations after relayout, orientation and font changes using the locator
-  resolution and location script.
-- Highlight and annotation rendering and storage, selection UI and accessible
-  controls, built on locators and CFI ranges.
-- Device verification for reflowable and fixed-layout books, RTL, vertical
-  writing, embedded fonts, images, media and accessibility.
+- WebView lifecycle, a navigation policy confined to the render session,
+  chapter switching, platform setup guidance and host script injection that
+  keeps publication scripts disabled.
+- Paged and scrolled reading with page controls (edge taps, swipes, keys,
+  mirrored for right-to-left), continuous page turns across reading-order
+  items, and progress from locations and positions.
+- Location restoration after settings changes, reopening and relayout, using
+  locator resolution and the location script; selection-to-locator mapping.
+- An example app with contents, bookmarks, search, themes and text size.
+
+A premium reader still needs:
+
+- Highlight and annotation rendering and storage, page-turn animations,
+  synthetic spreads and fixed-layout zoom, and accessible reading controls.
+- Device verification on physical phones and tablets for reflowable and
+  fixed-layout books, RTL, vertical writing, embedded fonts, media and
+  accessibility, and macOS verification.
 
 The existing bridge requires the host to keep the session and publication alive,
 restrict JavaScript to host-injected scripts and handle outbound navigation

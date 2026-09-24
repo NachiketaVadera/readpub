@@ -5,7 +5,7 @@ Status: accepted and implemented.
 The W3C EPUB 3 test suite (`w3c/epub-tests`, commit `4cc654f`, 2026-09-16, W3C
 Software and Document License) was built into 209 EPUBs with the suite's
 `generateEpubs.sh` and run through parsing, resource access, text extraction,
-render preparation and positions with `tool/conformance.dart`. Nine publications failed initially. Their requirements, not our
+render preparation and positions with `packages/readpub/tool/conformance.dart`. Nine publications failed initially. Their requirements, not our
 earlier choices, decided each change:
 
 - **Stored ZIP members with compression-option flags** (`cnt-css-fonts_woff2`).
@@ -45,7 +45,7 @@ tests judge rendering, scripting, media or user interface behavior and must be
 run in a reading system built on this package.
 
 The 35 tests with an asserted requirement or a required error are vendored in
-`test/fixtures/w3c` and run by `test/w3c_suite_test.dart`, so regressions fail
+`packages/readpub/test/fixtures/w3c` and run by `test/w3c_suite_test.dart`, so regressions fail
 the ordinary test suite. `tool/vendor_w3c_tests.py` rebuilds them byte for byte
 from the pinned commit; test files are packaged unmodified except for the two
 container tests, which the suite describes but cannot build. The license notice

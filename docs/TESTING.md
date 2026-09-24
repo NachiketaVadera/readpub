@@ -1,5 +1,8 @@
 # Verification strategy
 
+Paths and commands refer to the core package, `packages/readpub`, unless they
+name the Flutter reader.
+
 Tests under `test/` cover primitives, independent ZIP interoperability and
 EPUB parsing. Python-generated EPUB fixtures exercise metadata, spine, nav/NCX,
 xml:base, encodings, encryption and malformed inputs with explicit value/byte
@@ -77,6 +80,12 @@ git clone --depth 1 --filter=blob:none --sparse https://github.com/w3c/epub-test
 cd epub-tests && git sparse-checkout set tests && cd tests && sh generateEpubs.sh
 dart run tool/conformance.dart /path/to/epub-tests/tests report.json
 ```
+
+The Flutter reader package has its own tests: `flutter test` in
+`packages/readpub_reader` runs controller unit tests against a scripted
+surface, and `flutter test integration_test/reader_test.dart -d <device>` in its
+example runs the reader on a simulator or emulator, asserting where located
+text appears on screen after navigation, relayout and restoration.
 
 Fuzzing remains future work and is not a substitute for these deterministic
 tests.

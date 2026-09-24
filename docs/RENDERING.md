@@ -45,7 +45,10 @@ XHTML is parsed namespace-aware, with HTML named character references such as
 `&nbsp;` decoded as browsers do for XHTML document types, and emitted as UTF-8.
 Legacy HTML uses an HTML5 parser. UTF-8 with a byte order mark, UTF-16 and
 common legacy Windows-1252 content are decoded. Publisher text and styles are
-retained, with reader styles appended after existing head content.
+retained, with reader styles appended after existing head content. Reflowable
+documents also receive a `width=device-width` viewport declaration, without
+which mobile WebViews lay pages out at desktop width; fixed-layout documents
+keep the author's viewport.
 
 Preparation preserves the element and character-data structure that EPUB CFIs
 count, so browser-side locations match the original document (ADR 0010).
@@ -102,7 +105,11 @@ configuration. Otherwise enabling JavaScript relies on the session's
 `script-src 'none'` policy and script removal to keep publication scripts
 inert; verify on each target platform that host-evaluated scripts run under
 that policy. The script was verified against `DocumentText` in a Chromium-based
-browser (see VERIFICATION.md); other engines and WebViews are not yet verified.
+browser, and through the Flutter reader's integration tests in WebKit on the iOS
+simulator and in Android System WebView on an Android emulator (see
+VERIFICATION.md). Physical devices remain unverified. The
+[Flutter reader package](../packages/readpub_reader/README.md) implements this
+contract for iOS, Android and macOS.
 
 ## Security and host responsibilities
 

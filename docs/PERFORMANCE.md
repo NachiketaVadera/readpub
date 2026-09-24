@@ -1,6 +1,6 @@
 # Performance
 
-Measured on 2026-09-24 with `tool/benchmark.dart`, compiled with
+Measured on 2026-09-24 with `packages/readpub/tool/benchmark.dart`, compiled with
 `dart compile exe` (Dart 3.13.4), on an Apple M4 Pro (14 cores, 24 GB) running
 macOS 27.0. Three consecutive runs differed by less than 2 ms per phase except
 `open`, which ranged from 46 to 62 ms. Numbers depend on hardware; phones are
@@ -13,7 +13,7 @@ Dart runtime and the benchmark's own allocations.
 committed: 108.8 MB on disk, 300 XHTML chapters with about 3.6 million
 characters of text (4,158 positions), 300 deflated incompressible 300 KB
 images, a 20 MB stored audio member and a nested table of contents with 3,300
-entries. Reproduce with:
+entries. Reproduce from `packages/readpub` with:
 
 ```sh
 python3 tool/generate_benchmark_epub.py /tmp/benchmark.epub
