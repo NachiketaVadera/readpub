@@ -725,14 +725,29 @@ final class ReadingServices implements SearchService {
 
   /// Splits a publication CFI into its spine item and content-document CFI.
   (EpubSpineItem, EpubCfi?)? _splitPublicationCfi(EpubCfi cfi) {
+    if (!cfi.isRange) return _splitPublicationPointCfi(cfi);
+    // A range parent can sit before the package-to-content indirection. Split
+    // its complete endpoints so local `!` paths retain both ends of a
+    // selection. Ranges spanning spine items cannot be represented by one
+    // content-document locator.
+    final start = _splitPublicationPointCfi(cfi.start);
+    final end = _splitPublicationPointCfi(cfi.end);
+    if (start == null || end == null || !identical(start.$1, end.$1)) return null;
+    final startContent = start.$2;
+    final endContent = end.$2;
+    if (startContent == null || endContent == null) return null;
+    try {
+      return (start.$1, EpubCfi.between(startContent, endContent));
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  (EpubSpineItem, EpubCfi?)? _splitPublicationPointCfi(EpubCfi cfi) {
     final publication = this.publication;
     if (publication is! EpubPublication || publication.spine.isEmpty) return null;
     final steps = cfi.path.steps;
     final indirection = steps.indexWhere((step) => step.indirect);
-    if (indirection < 0 && cfi.isRange) {
-      // The indirection is inside the local paths; use the range start.
-      return _splitPublicationCfi(cfi.start);
-    }
     final package = indirection < 0 ? steps : steps.sublist(0, indirection);
     if (package.length != 2 ||
         package.first.index != publication.spine.first.cfiPath.steps.first.index) {
@@ -746,12 +761,7 @@ final class ReadingServices implements SearchService {
       ...steps.skip(indirection + 1),
     ], offset: cfi.path.offset);
     try {
-      return (
-        item,
-        cfi.isRange
-            ? EpubCfi.range(content, cfi.rangeStart!, cfi.rangeEnd!)
-            : EpubCfi(content),
-      );
+      return (item, EpubCfi(content));
     } on ArgumentError {
       return null;
     }

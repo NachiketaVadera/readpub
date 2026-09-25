@@ -1,7 +1,7 @@
 name: readpub_reader
 description: A Flutter EPUB reader view and controller built on readpub.
 version: 0.1.0-dev.1
-publish_to: none
+repository: https://github.com/NachiketaVadera/readpub/tree/main/packages/readpub_reader
 
 environment:
   sdk: ^3.13.0
@@ -10,8 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  readpub:
-    path: ../readpub
+  readpub: ^0.1.0-dev.1
   webview_flutter: ^4.14.1
   webview_flutter_android: ^4.14.1
   webview_flutter_wkwebview: ^3.26.1

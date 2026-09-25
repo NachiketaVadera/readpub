@@ -1,6 +1,7 @@
 name: readpub
 description: A pure-Dart toolkit for reading EPUB publications.
 version: 0.1.0-dev.1
+repository: https://github.com/NachiketaVadera/readpub/tree/main/packages/readpub
 topics:
   - epub
   - books

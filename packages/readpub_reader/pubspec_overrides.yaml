@@ -1,0 +1,4 @@
+# Local development only; Pub excludes this file from published packages.
+dependency_overrides:
+  readpub:
+    path: ../readpub

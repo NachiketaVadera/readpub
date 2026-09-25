@@ -9,8 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  readpub:
-    path: ../../readpub
+  readpub: ^0.1.0-dev.1
   readpub_reader:
     path: ..
 

@@ -1,5 +1,11 @@
 ## 0.1.0-dev.1
 
+* Correct total progression through shortened final positions so the end of a
+  book reaches 100%, while existing position boundaries remain unchanged.
+* Reject inconsistent cached position lengths, counts and unreadable flags.
+* Preserve CFI range endpoints when package indirection occurs in local range
+  paths; reject ranges spanning different spine documents.
+
 * Add the initial asset, ZIP archive, fetcher, resource, and URI foundations.
 * Add EPUB 2/3 package, metadata, manifest/spine and nested navigation parsing.
 * Add immutable publication models, metadata refinements, rendition properties,

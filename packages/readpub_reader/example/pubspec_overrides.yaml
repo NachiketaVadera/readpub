@@ -1,0 +1,4 @@
+# Overrides must also be declared by the example, which is its own Pub root.
+dependency_overrides:
+  readpub:
+    path: ../../readpub

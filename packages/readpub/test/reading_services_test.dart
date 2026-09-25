@@ -146,9 +146,80 @@ void main() {
       );
       final broken = positions.toJson()..['version'] = 99;
       expect(() => PublicationPositions.fromJson(broken), throwsFormatException);
+      final zeroWidth = positions.toJson()..['charactersPerPosition'] = 0;
+      expect(() => PublicationPositions.fromJson(zeroWidth), throwsFormatException);
       final shifted = jsonDecode(jsonEncode(positions.toJson())) as Map;
       (shifted['positions'] as List).removeLast();
       expect(() => PublicationPositions.fromJson(shifted), throwsFormatException);
+
+      final negativeLength = jsonDecode(jsonEncode(positions.toJson())) as Map;
+      ((negativeLength['resources'] as List).first as Map)['length'] = -1;
+      expect(
+        () => PublicationPositions.fromJson(negativeLength),
+        throwsFormatException,
+      );
+
+      final mismatchedCount = jsonDecode(jsonEncode(positions.toJson())) as Map;
+      ((mismatchedCount['resources'] as List).first as Map)['length'] = 1;
+      expect(
+        () => PublicationPositions.fromJson(mismatchedCount),
+        throwsFormatException,
+      );
+
+      final malformedUnreadable = jsonDecode(jsonEncode(positions.toJson())) as Map;
+      ((malformedUnreadable['resources'] as List).first as Map)['unreadable'] = 'yes';
+      expect(
+        () => PublicationPositions.fromJson(malformedUnreadable),
+        throwsFormatException,
+      );
+    });
+
+    test('interpolates a short final position through its next boundary', () async {
+      final (book, services) = await open();
+      final chapter = book.readingOrder.first;
+      final document = (await services.documentText(chapter))!;
+      final endServices = ReadingServices(
+        book,
+        charactersPerPosition: document.length + 1,
+      );
+      final positions = await endServices.positions();
+      final expected = positions.forReadingOrder(0).length / positions.total;
+      expect(positions.totalProgressionAt(0, 1), closeTo(expected, 1e-12));
+
+      final locator = await endServices.locatorForProgression(chapter, 1);
+      expect(locator.locations.totalProgression, closeTo(expected, 1e-12));
+    });
+
+    test('reaches book end continuously without moving position boundaries', () async {
+      final book = await EpubPublication.open(
+        FileAsset('test/fixtures/epub/epub3-basic.epub'),
+      );
+      addTearDown(book.close);
+      final chapter = book.readingOrder.single;
+      for (final width in [10, 1024]) {
+        final services = ReadingServices(book, charactersPerPosition: width);
+        final document = (await services.documentText(chapter))!;
+        final positions = await services.positions();
+        for (final locator in positions.locators) {
+          expect(
+            positions.totalProgressionAt(0, locator.locations.progression!),
+            closeTo(locator.locations.totalProgression!, 1e-12),
+          );
+        }
+        final lastStart = (positions.total - 1) * width;
+        final midpoint = (lastStart + document.length) / 2 / document.length;
+        expect(
+          positions.totalProgressionAt(0, midpoint),
+          closeTo((positions.total - 0.5) / positions.total, 1e-12),
+        );
+        expect(positions.totalProgressionAt(0, 1), 1);
+        expect(
+          (await services.locatorForProgression(chapter, 1)).locations.totalProgression,
+          1,
+        );
+        final cached = PublicationPositions.fromJson(positions.toJson());
+        expect(cached.totalProgressionAt(0, 1), 1);
+      }
     });
   });
 
@@ -200,6 +271,11 @@ void main() {
       expect(fromFull, fromContent);
       expect(fromFull.text.highlight, 'café');
       expect(fromFull.locations.partialCfi, selection.start.expression);
+      final packagePath = '/6/2[ref-ch1]';
+      final localRange = EpubCfi.parse(
+        'epubcfi($packagePath,${full.start.expression.substring(packagePath.length)},${full.end.expression.substring(packagePath.length)})',
+      );
+      expect((await services.locatorForCfi(localRange))!.text.highlight, 'café');
       // A manifest ID assertion, as some reading systems write, and a stale
       // itemref index corrected by its itemref ID.
       final manifestId = EpubCfi.parse(
@@ -227,6 +303,13 @@ void main() {
         await services.locatorForCfi(EpubCfi.parse('/4/2[missing]'), link: chapter),
         isNull,
       );
+      final other = book.readingOrder[1];
+      final otherDocument = (await services.documentText(other))!;
+      final crossDocument = EpubCfi.between(
+        services.publicationCfi(chapter, document.cfiAt(start))!,
+        services.publicationCfi(other, otherDocument.cfiAt(0))!,
+      );
+      expect(await services.locatorForCfi(crossDocument), isNull);
     });
 
     test('from text ranges support application search indexes', () async {

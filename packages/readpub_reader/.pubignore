@@ -1,0 +1,24 @@
+# Preserve the package's .gitignore rules when publishing.
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+*.iml
+*.ipr
+*.iws
+.idea/
+/pubspec.lock
+**/doc/api/
+.dart_tool/
+.flutter-plugins-dependencies
+/build/
+/coverage/
+
+# Local workspace overrides must not ship, including the example's override.
+pubspec_overrides.yaml

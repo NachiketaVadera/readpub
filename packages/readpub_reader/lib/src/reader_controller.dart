@@ -146,6 +146,7 @@ final class ReaderController extends ChangeNotifier {
   bool _ready = false;
   bool _disposed = false;
   int _generation = 0;
+  int _selectionRevision = 0;
   // Identifies the document in the surface; it changes when a load starts
   // and when a document finishes loading.
   int _document = 0;
@@ -272,6 +273,7 @@ final class ReaderController extends ChangeNotifier {
 
   /// Clears the text selection in the surface.
   Future<void> clearSelection() async {
+    _invalidateSelection();
     if (_disposed || _decorated != _document) return;
     await surface.run('window.getSelection().removeAllRanges()');
   }
@@ -279,13 +281,20 @@ final class ReaderController extends ChangeNotifier {
   /// Returns a locator for the current selection, or null without one.
   Future<Locator?> selectionLocator() async {
     final link = _link;
+    final document = _document;
+    final revision = _selectionRevision;
     if (link == null || !_ready) return null;
     final cfi = await surface.evaluate(
       'JSON.stringify(window.readpub.selectionCfi())',
     );
     if (cfi is! String) return null;
     final parsed = EpubCfi.tryParse(cfi);
-    return parsed == null ? null : services.locatorForCfi(parsed, link: link);
+    final locator = parsed == null
+        ? null
+        : await services.locatorForCfi(parsed, link: link);
+    return _disposed || document != _document || revision != _selectionRevision
+        ? null
+        : locator;
   }
 
   @override
@@ -333,7 +342,18 @@ final class ReaderController extends ChangeNotifier {
   }
 
   bool _allow(Uri url) {
-    if (url.toString().startsWith(session.baseUrl.toString())) return true;
+    if (url.toString().startsWith(session.baseUrl.toString())) {
+      final loading = _loading;
+      if (loading != null) return _samePath(url, loading);
+      final displayed = _displayed;
+      if (displayed == null || _samePath(url, displayed)) return true;
+      final (index, link) = _resourceFor(url);
+      if (link == null) return false;
+      _index = index;
+      _link = link;
+      _beginLoad(url, url.fragment.isEmpty ? const _Target() : null);
+      return true;
+    }
     if (url.scheme == 'about') return url.toString() == 'about:blank';
     onExternalLink?.call(url);
     return false;
@@ -345,6 +365,7 @@ final class ReaderController extends ChangeNotifier {
     _Target target, {
     bool reload = false,
   }) async {
+    if (_disposed) return;
     // An empty fragment would make reloading the same URL a same-document
     // navigation on Android.
     final url = session.urlFor(link).removeFragment();
@@ -359,13 +380,10 @@ final class ReaderController extends ChangeNotifier {
       await _restore(target);
       return;
     }
-    _pending = target;
-    _loading = url;
-    _ready = false;
-    _generation++;
-    _document++;
-    notifyListeners();
+    _beginLoad(url, target);
+    final document = _document;
     await _setBackground();
+    if (_disposed || document != _document) return;
     if (reload && displayed != null && _samePath(url, displayed)) {
       await surface.reload();
     } else {
@@ -373,36 +391,45 @@ final class ReaderController extends ChangeNotifier {
     }
   }
 
+  void _beginLoad(Uri url, _Target? target) {
+    _pending = target;
+    _loading = url;
+    _ready = false;
+    _generation++;
+    _document++;
+    _invalidateSelection(notify: false);
+    notifyListeners();
+  }
+
   Future<void> _pageFinished(Uri url) async {
     if (_disposed || !url.toString().startsWith(session.baseUrl.toString())) {
       return;
     }
-    _document++;
     final loading = _loading;
-    if (loading == null || !_samePath(url, loading)) {
-      // A link inside the content navigated to another resource.
-      final (index, link) = _resourceFor(url);
-      if (link == null) return;
-      _index = index;
-      _link = link;
-      _pending = url.fragment.isEmpty ? const _Target() : null;
-    }
+    // Only the pending navigation, or a fragment of the displayed document,
+    // may finish. An earlier load can report completion after a newer one.
+    final expected = loading ?? _displayed;
+    if (expected == null || !_samePath(url, expected)) return;
+    _document++;
+    _invalidateSelection(notify: false);
     _loading = null;
     _displayed = url;
     final document = _document;
     final target = _pending;
     _pending = null;
     await surface.run(readerLocationScript);
+    if (_disposed || document != _document) return;
     await surface.run(readerBridgeScript);
+    if (_disposed || document != _document) return;
     await surface.run(readerDecorationScript);
-    if (_disposed) return;
+    if (_disposed || document != _document) return;
     if (document == _document) {
       _decorated = document;
       // Drawn before positioning, so the page appears with its decorations.
       await _draw(_decorations.keys.toList());
     }
     // A newer load positions its own document.
-    if (_disposed || _loading != null) return;
+    if (_disposed || _loading != null || document != _document) return;
     if (target != null) {
       await _restore(target);
     } else {
@@ -411,16 +438,20 @@ final class ReaderController extends ChangeNotifier {
   }
 
   Future<void> _restore(_Target target) async {
+    final document = _document;
     final state = await surface.evaluate(
       'window.readpubReader.restore(${jsonEncode(target.toJson())})',
     );
+    if (_disposed || document != _document) return;
     _ready = true;
     await _applyState(state);
   }
 
   Future<void> _relocate() async {
     if (_loading != null || _link == null) return;
+    final document = _document;
     final state = await surface.evaluate('window.readpubReader.state()');
+    if (_disposed || document != _document) return;
     _ready = true;
     await _applyState(state);
   }
@@ -545,7 +576,9 @@ final class ReaderController extends ChangeNotifier {
       case 'relocated':
         if (_loading == null) unawaited(_applyState(event));
       case 'selection':
-        unawaited(_selectionChanged(event['cfi'], event['text']));
+        if (_loading == null) {
+          unawaited(_selectionChanged(event['cfi'], event['text']));
+        }
       case 'decorationActivated':
         _activated(event);
       case 'tap':
@@ -607,6 +640,8 @@ final class ReaderController extends ChangeNotifier {
   }
 
   Future<void> _selectionChanged(Object? cfi, Object? text) async {
+    final document = _document;
+    final revision = ++_selectionRevision;
     final link = _link;
     final parsed = cfi is String ? EpubCfi.tryParse(cfi) : null;
     ReaderSelection? selection;
@@ -616,9 +651,18 @@ final class ReaderController extends ChangeNotifier {
         selection = ReaderSelection(text: text, locator: locator);
       }
     }
-    if (_disposed) return;
+    if (_disposed || document != _document || revision != _selectionRevision) {
+      return;
+    }
     _selection = selection;
     notifyListeners();
+  }
+
+  void _invalidateSelection({bool notify = true}) {
+    _selectionRevision++;
+    final changed = _selection != null;
+    _selection = null;
+    if (notify && changed && !_disposed) notifyListeners();
   }
 
   (int?, Link?) _resourceFor(Uri url) {

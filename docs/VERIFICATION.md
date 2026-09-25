@@ -1,5 +1,36 @@
 # Verification
 
+## Fix verification, 2026-09-25
+
+The five defects found in the independent review are fixed and covered by
+regressions: shortened final-position progress, local-indirection CFI ranges,
+invalid position caches, superseded chapter completions and stale selections.
+Additional controller tests cover delayed script injection, restoration and
+selection lookups. Position cache version 1 remains valid: serialized position
+boundaries are unchanged; interpolation between them is corrected.
+
+- `dart test`: 229 core tests pass.
+- `flutter test --no-pub`: 21 reader tests pass.
+- Strict analysis passes for the core and reader (including its example);
+  formatting covers 72 Dart files.
+- All six existing integration tests pass on both the iPhone 16 simulator,
+  iOS 18.5, and the configured Android emulator with Android WebView.
+- Authorized networked publish dry runs completed validation for both packages.
+  Each reports an uncommitted-files warning; the reader additionally reports
+  a local dependency override hint. These advisories produce nonzero command
+  exits. No blocking package validation errors were reported and nothing was
+  published. The root roadmap and both local override files are absent from
+  the release archives.
+- Both packages now have repository metadata. The reader and example declare
+  a hosted core dependency, with checked-in local development overrides. The
+  core must be published first; the reader still needs a dependency resolution
+  check without overrides against that published core before its own release.
+
+The earlier conformance and benchmark evidence below is historical; those full
+external-corpus and performance runs were not repeated for these fixes.
+
+## Previous baseline
+
 Verified on 2026-09-24 with Dart 3.13.4 stable on macOS 27.0 arm64 (Apple M4
 Pro). Commands and paths refer to the core package, `packages/readpub`, except
 in the Flutter reader section.

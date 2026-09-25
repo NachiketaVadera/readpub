@@ -19,8 +19,14 @@ docs/               Architecture, design decisions (ADRs), compatibility,
 IMPLEMENTATION.md   Implementation status and roadmap
 ```
 
-Each package resolves its dependencies on its own; `readpub_reader` depends on
-`readpub` through a path dependency.
+Each package resolves its dependencies on its own. `readpub_reader` declares a
+hosted `readpub` dependency for publication; checked-in `pubspec_overrides.yaml`
+files point the reader and its example at the local core during development.
+Pub excludes these override files from published archives.
+
+Publish the core package before the reader so the reader's hosted dependency
+can resolve. Release validation uses `dart pub publish --dry-run` in the core
+and `flutter pub publish --dry-run` in the reader; neither command publishes.
 
 ## Development
 

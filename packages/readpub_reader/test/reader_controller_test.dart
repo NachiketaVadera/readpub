@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -12,6 +13,7 @@ final class FakeSurface implements ReaderSurface {
   final List<String> runs = [];
   final List<String> evaluations = [];
   Object? Function(String expression) evaluator = (_) => null;
+  Future<void> Function(String script)? runner;
   void Function(String message)? _onMessage;
   void Function(Uri url)? _onPageFinished;
   bool Function(Uri url)? _onNavigationRequest;
@@ -35,7 +37,10 @@ final class FakeSurface implements ReaderSurface {
   Future<void> reload() async => reloads++;
 
   @override
-  Future<void> run(String script) async => runs.add(script);
+  Future<void> run(String script) async {
+    runs.add(script);
+    await runner?.call(script);
+  }
 
   @override
   Future<Object?> evaluate(String expression) async {
@@ -243,6 +248,136 @@ void main() {
     expect(surface.evaluations.last, contains('"cfi":"/4/26[p12]/1:9"'));
   });
 
+  test(
+    'ignores superseded chapter completion before and after loading',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final oldUrl = surface.loads.first;
+      await controller.nextChapter();
+      final scripts = surface.runs.length;
+      surface.finish(oldUrl);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.isReady, isFalse);
+      expect(surface.runs, hasLength(scripts));
+
+      surface.evaluator = (_) => state('/4/2[c2]/1:0');
+      surface.finish();
+      await until(() => controller.location?.readingOrderIndex == 1);
+      surface.finish(oldUrl);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.location!.readingOrderIndex, 1);
+      expect(surface.runs, hasLength(scripts + 3));
+    },
+  );
+
+  test(
+    'a superseded script injection cannot restore the newer chapter',
+    () async {
+      final (book, controller, surface) = await open();
+      final entered = Completer<void>();
+      final release = Completer<void>();
+      surface.runner = (_) {
+        surface.runner = null;
+        entered.complete();
+        return release.future;
+      };
+      surface.finish();
+      await entered.future;
+      await controller.nextChapter();
+      surface.evaluator = (_) => state('/4/2[c2]/1:0');
+      surface.finish();
+      await until(() => controller.location?.readingOrderIndex == 1);
+      final evaluations = surface.evaluations.length;
+      release.complete();
+      await Future<void>.delayed(Duration.zero);
+      expect(surface.evaluations, hasLength(evaluations));
+      expect(controller.location!.readingOrderIndex, 1);
+    },
+  );
+
+  test(
+    'an old restoration result cannot mark a pending chapter ready',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final entered = Completer<void>();
+      final release = Completer<Object?>();
+      surface.evaluator = (_) {
+        entered.complete();
+        return release.future;
+      };
+      final navigation = controller.goToLink(book.tableOfContents.first);
+      await entered.future;
+      await controller.nextChapter();
+      release.complete(state('/4/2[c1]/1:0'));
+      await navigation;
+      expect(controller.isReady, isFalse);
+      expect(surface.loads.last.path, endsWith('two.xhtml'));
+    },
+  );
+
+  test(
+    'chapter loads and reloads clear selections and ignore late events',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final document = (await controller.services.documentText(
+        book.readingOrder.first,
+      ))!;
+      final event = <String, Object?>{
+        'type': 'selection',
+        'cfi': document.cfiForRange(0, 4).expression,
+        'text': document.text.substring(0, 4),
+      };
+      surface.post(event);
+      await until(() => controller.selection != null);
+      await controller.updateSettings(ReaderSettings(fontScale: 1.2));
+      expect(controller.selection, isNull);
+      await ready(controller, surface);
+      surface.post(event);
+      await until(() => controller.selection != null);
+      await controller.nextChapter();
+      expect(controller.selection, isNull);
+      surface.post(event);
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.selection, isNull);
+    },
+  );
+
+  test(
+    'late selection resolution cannot resurrect a cleared selection',
+    () async {
+      final (book, controller, surface) = await open();
+      await ready(controller, surface);
+      final document = (await controller.services.documentText(
+        book.readingOrder.first,
+      ))!;
+      surface.post({
+        'type': 'selection',
+        'cfi': document.cfiForRange(0, 4).expression,
+        'text': document.text.substring(0, 4),
+      });
+      await controller.clearSelection();
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.selection, isNull);
+    },
+  );
+
+  test('a delayed selection lookup returns null after clearing', () async {
+    final (book, controller, surface) = await open();
+    await ready(controller, surface);
+    final document = (await controller.services.documentText(
+      book.readingOrder.first,
+    ))!;
+    final release = Completer<Object?>();
+    surface.evaluator = (_) => release.future;
+    final selection = controller.selectionLocator();
+    await controller.clearSelection();
+    release.complete(document.cfiForRange(0, 4).expression);
+    expect(await selection, isNull);
+  });
+
   test('reports selections and taps, and maps swipes by progression', () async {
     final (book, controller, surface) = await open();
     await ready(controller, surface);
@@ -291,7 +426,7 @@ void main() {
       );
       await ready(controller, surface);
       expect(
-        surface.navigate(controller.session.urlFor(book.readingOrder[1])),
+        surface.navigate(controller.session.urlFor(book.readingOrder.first)),
         isTrue,
       );
       expect(surface.navigate(Uri.parse('about:blank')), isTrue);
@@ -310,7 +445,9 @@ void main() {
       surface.evaluator = (expression) => expression.contains('restore')
           ? state('/4/2[n1]/1:0', pageCount: 1)
           : null;
-      surface.finish(controller.session.urlFor(notes));
+      final notesUrl = controller.session.urlFor(notes);
+      expect(surface.navigate(notesUrl), isTrue);
+      surface.finish(notesUrl);
       await until(() => controller.location?.locator.href == notes.href);
       expect(controller.location!.readingOrderIndex, isNull);
       expect(

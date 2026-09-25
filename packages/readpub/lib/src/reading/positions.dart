@@ -48,6 +48,9 @@ final class PublicationPositions {
       throw const FormatException('Unsupported publication positions cache.');
     }
     final perPosition = json['charactersPerPosition'] as int;
+    if (perPosition < 1) {
+      throw const FormatException('Invalid publication positions cache.');
+    }
     final resources = <_PositionResource>[];
     var start = 1;
     for (final item in json['resources'] as List) {
@@ -55,24 +58,29 @@ final class PublicationPositions {
           item['href'] is! String ||
           item['count'] is! int ||
           (item['length'] != null && item['length'] is! int) ||
-          (item['count'] as int) < 1) {
+          (item['unreadable'] != null && item['unreadable'] is! bool) ||
+          (item['count'] as int) < 1 ||
+          (item['length'] is int && (item['length'] as int) < 0)) {
         throw const FormatException('Invalid publication positions resource.');
       }
+      final count = item['count'] as int;
+      final length = item['length'] as int?;
+      final unreadable = item['unreadable'] == true;
+      final expectedCount = length == null || length == 0
+          ? 1
+          : (length + perPosition - 1) ~/ perPosition;
+      if (count != expectedCount || (unreadable && length != null)) {
+        throw const FormatException('Inconsistent publication positions resource.');
+      }
       resources.add(
-        _PositionResource(
-          item['href'] as String,
-          start,
-          item['count'] as int,
-          item['length'] as int?,
-          item['unreadable'] == true,
-        ),
+        _PositionResource(item['href'] as String, start, count, length, unreadable),
       );
-      start += item['count'] as int;
+      start += count;
     }
     final locators = [
       for (final item in json['positions'] as List) Locator.fromJson(item),
     ];
-    if (perPosition < 1 || locators.length != start - 1) {
+    if (locators.length != start - 1) {
       throw const FormatException('Publication positions are inconsistent.');
     }
     for (final resource in resources) {
@@ -135,7 +143,7 @@ final class PublicationPositions {
     final value = progression.clamp(0, 1).toDouble();
     final fraction = length == null || length == 0
         ? value * resource.count
-        : min(resource.count.toDouble(), value * length / charactersPerPosition);
+        : _positionFraction(resource, value * length, length);
     return ((resource.start - 1 + fraction) / total).clamp(0, 1).toDouble();
   }
 
@@ -151,8 +159,24 @@ final class PublicationPositions {
     }
     final int position =
         resource.start + min(resource.count - 1, offset ~/ charactersPerPosition);
-    final fraction = min(resource.count.toDouble(), offset / charactersPerPosition);
+    final fraction = _positionFraction(resource, offset.toDouble(), length);
     return (position, ((resource.start - 1 + fraction) / total).clamp(0, 1).toDouble());
+  }
+
+  /// The number of position intervals elapsed at [offset]. Full intervals
+  /// retain their existing 1,024-code-unit boundaries; the final short
+  /// interval is scaled to reach its following position boundary.
+  double _positionFraction(_PositionResource resource, double offset, int length) {
+    final complete = resource.count - 1;
+    final lastStart = complete * charactersPerPosition;
+    if (length <= lastStart) {
+      return (offset / charactersPerPosition).clamp(0, resource.count.toDouble());
+    }
+    if (offset <= lastStart) return offset / charactersPerPosition;
+    return (complete + (offset - lastStart) / (length - lastStart)).clamp(
+      0,
+      resource.count.toDouble(),
+    );
   }
 
   bool _matches(List<Link> readingOrder, int perPosition) =>

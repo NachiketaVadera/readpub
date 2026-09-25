@@ -22,9 +22,12 @@ browser DOM offsets.
 Positions are deterministic: one per 1,024 UTF-16 code units of reading text in
 each reflowable reading-order resource, rounded up, and exactly one for fixed
 layout, text-free, non-text or unreadable resources. Non-linear resources have
-no positions. Total progression interpolates positions, so every resource is
-reachable and progress is monotonic. Positions can be cached as JSON with a
-format version and are validated against the reading order when reused.
+no positions. Total progression interpolates positions, preserving every full
+1,024-code-unit boundary and scaling a final short interval through its next
+position boundary, so every resource is reachable and progress is monotonic.
+Positions can be cached as JSON with a format version; caches validate every
+resource's count, length and unreadable state as well as the reading order when
+reused.
 
 Search scans reading-order documents lazily, one document at a time, with a
 bounded result count. Matching normalizes whitespace, soft hyphens and

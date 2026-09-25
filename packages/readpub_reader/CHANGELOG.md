@@ -1,5 +1,12 @@
 ## 0.1.0-dev.1
 
+* Ignore superseded chapter completions, script injections and restoration
+  results so delayed browser work cannot replace the current reading location.
+* Clear selections on chapter changes and reloads, and discard pending selection
+  results after navigation or explicit clearing.
+* Prepare hosted core dependency and repository metadata for publication; keep
+  local development overrides outside published archives.
+
 * Add `ReaderController`: chapter loading, page turns across reading-order
   items, navigation to locators and table-of-contents links, settings changes
   that keep the reading location, selection and location reporting, and

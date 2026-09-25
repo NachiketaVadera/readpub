@@ -1,6 +1,6 @@
 # Implementation status and roadmap
 
-Last updated: 2026-09-24. Working package name: `readpub`.
+Last updated: 2026-09-25. Working package name: `readpub`.
 
 This is an internal development document at the repository root, outside both
 packages, so it is never published.
@@ -61,7 +61,23 @@ the text-based reading services, not from rendered pages.
 
 ## Verification achieved
 
-The last recorded implementation verification used Dart 3.13.4 stable on macOS
+The 2026-09-25 review fixes are verified by 229 core tests, 21 Flutter reader
+tests, clean strict analysis and formatting, and six integration tests each on
+the iPhone simulator and Android emulator. The fixes cover final-position
+progress reaching 100%, preserving local
+indirection in CFI ranges, rejecting inconsistent position caches, ignoring stale
+chapter loads and discarding old selections and delayed selection results.
+Position cache version 1 remains compatible because stored boundaries have not
+changed.
+
+Networked release dry runs completed for both packages. Remaining advisories are
+uncommitted changes and, for the reader, its local dependency override. Repository
+metadata and hosted core constraints are configured; local overrides (including
+the example's) are excluded from publication. Publish the core first and verify
+the reader without overrides against that release before publishing it. Nothing
+has been published. See [latest verification](docs/VERIFICATION.md).
+
+The earlier implementation verification used Dart 3.13.4 stable on macOS
 arm64 on 2026-09-24. These are results from that verification, not a guarantee
 that every future checkout has passed them:
 
@@ -154,7 +170,8 @@ designs, narrow public APIs and behavioral tests. Item 7 is partly complete.
    contract and a browser reference script are done (ADR 0010). Readium CSS was
    evaluated and deferred until device verification is possible (ADR 0011). No
    preparation extension point was added because no consumer needs one yet.
-   Remaining: verify the script in WebKit and Android WebView.
+   Simulator WebKit and emulator Android WebView checks are recorded below;
+   physical-device and broader layout verification remain.
 7. **Parser compatibility and performance.** Large-book profiling is done and
    the measured range-read bottleneck is fixed (ADR 0012, PERFORMANCE.md). The
    W3C EPUB 3 test suite was run and every processing failure it exposed was

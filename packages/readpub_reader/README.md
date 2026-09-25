@@ -134,6 +134,12 @@ file and content access are disabled.
 
 ## Testing
 
+Run `flutter pub get` in this package first. The repository's
+`pubspec_overrides.yaml` files use the adjacent core package for local reader
+and example development; they are excluded from published archives. The
+published dependency is `readpub: ^0.1.0-dev.1`, so publish that core version
+before publishing the reader.
+
 ```sh
 flutter test                                   # Controller unit tests.
 cd example
